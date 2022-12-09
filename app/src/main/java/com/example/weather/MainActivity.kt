@@ -1,3 +1,4 @@
+
 package com.example.weather
 
 import android.Manifest
@@ -44,7 +45,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var service: WeatherService
     private lateinit var weatherResponse: WeatherResponse
     private lateinit var dialog:Dialog
-    private lateinit var current:LocalDateTime
+    private var current:LocalDateTime=LocalDateTime.now()
+    private var weatherUpdated = false;
 
     val requestPermissionLauncher =
         registerForActivityResult(
@@ -107,6 +109,7 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun updateLocationAndWeatherRepeatedly() {
+//        current = LocalDateTime.now()
         lifecycleScope.launch(Dispatchers.IO) {
             while(true) {
                 withContext(Dispatchers.Main) { updateLocationAndWeather() }
@@ -153,9 +156,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateWeather(location: Location) {
-        //Timestamping
-        current = LocalDateTime.now()
-        System.out.println(current)
         val call = service.getWeather(
             location.latitude,
             location.longitude,
@@ -169,6 +169,9 @@ class MainActivity : AppCompatActivity() {
                     response: Response<WeatherResponse>
                 ) {
                     val weatherResponseNullable = response.body()
+                    //Timestamping the last successful request
+                    current = LocalDateTime.now()
+                    weatherUpdated=true;
                     if(weatherResponseNullable != null){
                         weatherResponse = weatherResponseNullable
                         displayWeather()
@@ -185,19 +188,24 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-
+    // You have to wait for an actual minute to see "Updated 1 minute ago" after you turn off the internet
+    // to test this displayFail
     private fun displayUpdateFailed() {
         System.out.println("SYSTEM UPDATE FAILED")
         var curr = LocalDateTime.now()
+        System.out.println(curr)
+        System.out.println(current)
+        System.out.println(weatherUpdated)
+        // subtracting two Times to know when it was last updated
         val minutes: Int = ChronoUnit.MINUTES.between(current, curr).toInt()
         val hours: Int = ChronoUnit.HOURS.between(current, curr).toInt()
-        if(minutes==0){
+        if(minutes==0 && weatherUpdated==false){
             binding.connectionTv.text = getString(R.string.connecting)
         }
-        if(minutes==1){
+        if(minutes==1 && weatherUpdated==true){
             binding.connectionTv.text = getString(R.string.updated, minutes.toString()+ " minute ago")
         }
-        if(minutes>1){
+        if(minutes>1 && weatherUpdated==true){
             binding.connectionTv.text = getString(R.string.updated, minutes.toString()+ " minutes ago")
         }
         System.out.println(minutes)
@@ -242,6 +250,7 @@ class MainActivity : AppCompatActivity() {
         dialog.dismiss()
     }
 
+    //function to capitalise the first letter of all the words in a sentence
     fun capitalize(str: String): String {
         return str.trim().split("\\s+".toRegex())
             .map { it.capitalize() }.joinToString(" ")
@@ -255,14 +264,13 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
 
     }
-
+    //converting epox to AM/PM
     private fun getDateTime(s: Int): String? {
         val dt = Instant.ofEpochSecond(s.toLong())
             .atZone(ZoneId.systemDefault())
             .toLocalTime()
         var temp = dt.toString();
         val dateToFormat = Date(s.toLong()*1000)
-        System.out.println(dateToFormat)
         val dateFormatExpression = SimpleDateFormat("hh:mm a")
         val formattedDate = dateFormatExpression.format(dateToFormat)
         return formattedDate
