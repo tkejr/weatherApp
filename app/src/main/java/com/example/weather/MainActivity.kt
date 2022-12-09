@@ -47,6 +47,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var dialog:Dialog
     private var current:LocalDateTime=LocalDateTime.now()
     private var weatherUpdated = false;
+    var ctr = 2;
 
     val requestPermissionLauncher =
         registerForActivityResult(
@@ -142,12 +143,22 @@ class MainActivity : AppCompatActivity() {
 
                 }
                 withContext(Dispatchers.IO){
-                    delay(10000)
+                    //handling Airplane Mode
+                    delay((ctr*1000).toLong())
+                    if(!taskSuccessful){
+                        System.out.println(ctr)
+                        if(ctr<10) {
+                            ctr += 2
+                        }
+                    }
                     if(!taskSuccessful){
                         cancellationTokenSource.cancel()
                         withContext(Dispatchers.Main) {
                             displayUpdateFailed()
                         }
+                    }
+                    else{
+                        ctr = 2
                     }
                 }
             }
@@ -214,6 +225,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun displayWeather(){
+        //displaying data
         binding.connectionTv.text = getString(R.string.updated,"Just Now")
         binding.cityTv.text = weatherResponse.name
         //setting Sun Data
@@ -223,7 +235,21 @@ class MainActivity : AppCompatActivity() {
 
 
         binding.windDataTv.text=getString(R.string.wind_data,weatherResponse.wind.speed,weatherResponse.wind.deg,weatherResponse.wind.gust)
-        binding.precipitationDataTv.text = getString(R.string.precipitation_data,weatherResponse.main.humidity,weatherResponse.clouds.all)
+
+
+        var rain = weatherResponse.rain
+        var snow = weatherResponse.snow
+
+        if(rain!=null){
+            binding.precipitationDataTv.text = getString(R.string.rain, weatherResponse.rain?.one_h,weatherResponse.rain?.three_h)
+        }
+        if(snow!=null){
+            binding.precipitationDataTv.text = getString(R.string.snow, weatherResponse.snow?.one_h,weatherResponse.snow?.three_h)
+        }
+        else{
+            binding.precipitationDataTv.text = getString(R.string.precipitation_data,weatherResponse.main.humidity,weatherResponse.clouds.all)
+        }
+
         binding.otherDataTv.text = getString(R.string.other_data,weatherResponse.main.feels_like,weatherResponse.visibility*0.000621371,weatherResponse.main.pressure*0.02952998330101)
 
         var temp = capitalize(weatherResponse.weather[0].description)
