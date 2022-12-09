@@ -187,15 +187,20 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun displayUpdateFailed() {
+        System.out.println("SYSTEM UPDATE FAILED")
         var curr = LocalDateTime.now()
         val minutes: Int = ChronoUnit.MINUTES.between(current, curr).toInt()
         val hours: Int = ChronoUnit.HOURS.between(current, curr).toInt()
+        if(minutes==0){
+            binding.connectionTv.text = getString(R.string.connecting)
+        }
         if(minutes==1){
             binding.connectionTv.text = getString(R.string.updated, minutes.toString()+ " minute ago")
         }
         if(minutes>1){
             binding.connectionTv.text = getString(R.string.updated, minutes.toString()+ " minutes ago")
         }
+        System.out.println(minutes)
 
         dialog.dismiss()
     }
